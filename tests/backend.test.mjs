@@ -44,3 +44,23 @@ test('one atomic batch preserves physical sheet rows after UID-binding clones',(
   const changes=calls[0].request.requests,student=changes.find(x=>x.updateCells?.start.sheetId===info.Students.sheetId);
   assert.equal(student.updateCells.start.rowIndex,3);assert.equal(changes.length,3);
 });
+
+test('an ambiguous commit keeps the operation retryable even when Google returns a localized error',()=>{
+  const db=makeDemo();db.Users.find(u=>u.id==='teacher').uid='teacher-uid';
+  const c=context({
+    PropertiesService:{getScriptProperties:()=>({getProperties:()=>({})})},
+    LockService:{getScriptLock:()=>({tryLock:()=>true,releaseLock(){}})}
+  });
+  vm.runInContext(code,c);
+  c.verifyIdentity_=()=>({uid:'teacher-uid',email:'teacher@example.invalid'});
+  c.loadData_=()=>({db});c.hash_=()=> 'stable-hash';
+  c.commitData_=()=>{throw new Error('連線逾時，寫入結果不明');};
+  const request={action:'addPoints',payload:{studentIds:['s1'],termId:'term_115_1',amount:2,reason:'測試'},operationId:'operation_timeout_001',idToken:'token'};
+  const result=c.rpc(request);
+  assert.equal(result.ok,false);assert.equal(result.uncertain,true);
+  c.LockService.getScriptLock=()=>({tryLock:()=>false,releaseLock(){}});
+  assert.equal(c.rpc(request).uncertain,true);
+  c.LockService.getScriptLock=()=>({tryLock:()=>true,releaseLock(){}});
+  request.payload.amount=0;
+  assert.equal(c.rpc(request).uncertain,false);
+});

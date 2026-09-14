@@ -57,11 +57,11 @@ export function App(){
   const [childId,setChildId]=useState(''),[termId,setTermId]=useState(''),[search,setSearch]=useState(''),[courseId,setCourseId]=useState('');
   const [photoPage,setPhotoPage]=useState(0),[albumId,setAlbumId]=useState(''),[lightbox,setLightbox]=useState<any>(null),[dialog,setDialog]=useState<any>(null),[system,setSystem]=useState<any>(null);
   const [contentTab,setContentTab]=useState('announcements'),[selected,setSelected]=useState<string[]>([]),[uploadStatus,setUploadStatus]=useState('');
-  const uploadRef=useRef<HTMLInputElement>(null),toastTimer=useRef<any>(null);
+  const uploadRef=useRef<HTMLInputElement>(null),toastTimer=useRef<any>(null),lastCurrentTerm=useRef('');
   const notify=(message:string)=>{setToast(message);clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(''),5500);};
   const refresh=async()=>{setError('');try{const next=await api.snapshot();setData(next);setLogged(true);}catch(e:any){setError(e.message);}finally{setLoading(false);}};
   useEffect(()=>{api.currentLogin().then(ok=>{setLogged(ok);if(ok)refresh();else setLoading(false);});const listener=()=>{setPage(route());setMenu(false);setSearch('');setAlbumId('');};window.addEventListener('hashchange',listener);return()=>{window.removeEventListener('hashchange',listener);clearTimeout(toastTimer.current);};},[]);
-  useEffect(()=>{if(data){if(!data.Students.some((x:any)=>x.id===childId))setChildId(data.Students[0]?.id||'');if(!termId)setTermId(s(data,'currentTermId'));if(!Domain.staff(data.actor)&&page.startsWith('admin'))go('home');}},[data,page]);
+  useEffect(()=>{if(data){if(!data.Students.some((x:any)=>x.id===childId))setChildId(data.Students[0]?.id||'');const newCurrentTerm=s(data,'currentTermId');if(!termId||lastCurrentTerm.current!==newCurrentTerm)setTermId(newCurrentTerm);lastCurrentTerm.current=newCurrentTerm;if(!Domain.staff(data.actor)&&page.startsWith('admin'))go('home');}},[data,page]);
   useEffect(()=>{setPhotoPage(0);},[albumId]);
   useEffect(()=>{if(!lightbox)return;const close=(e:KeyboardEvent)=>{if(e.key==='Escape')setLightbox(null);};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close);},[lightbox]);
   async function perform(action:string,payload:any,close=true) {
@@ -69,7 +69,7 @@ export function App(){
     try {setData(await api.mutate(action,payload));if(close)setDialog(null);notify('已儲存');return true;}
     catch(e:any){notify(e.message);return false;}finally{setBusy(false);}
   }
-  async function changeRole(id:string){api.selectDemo(id);setSelected([]);setChildId('');setCourseId('');setAlbumId('');setData(null);setLoading(true);await refresh();go('home');}
+  async function changeRole(id:string){api.selectDemo(id);setSelected([]);setChildId('');setTermId('');setCourseId('');setAlbumId('');setData(null);setLoading(true);await refresh();go('home');}
   const showDialog=(title:string,action:string,fields:any[],initial:any,transform?:any,note?:string)=>setDialog({title,action,fields,initial,transform,note});
   async function signIn(){setBusy(true);setError('');try{await api.login();setLogged(true);await refresh();}catch(e:any){setError(e.message);}finally{setBusy(false);}}
   async function signOut(){await api.logout();setData(null);setLogged(false);setError('');setLightbox(null);setDialog(null);}
@@ -77,11 +77,11 @@ export function App(){
 
   const isStaff=Domain.staff(data.actor),isAdmin=data.actor.role==='admin',adminPage=page.startsWith('admin');
   const child=data.Students.find((x:any)=>x.id===childId);
-  const currentTerm=s(data,'currentTermId'),term=termId||currentTerm;
+  const currentTerm=s(data,'currentTermId'),term=(page==='home'||page==='admin')?currentTerm:termId||currentTerm;
   const termName=data.Terms.find((x:any)=>x.id===term)?.name||'學期';
   const activeStudents=data.Students.filter((x:any)=>x.active);
   const currentCourses=data.Courses.filter((x:any)=>x.termId===term).sort((a:any,b:any)=>(a.date+a.startTime).localeCompare(b.date+b.startTime));
-  const upcoming=currentCourses.find((x:any)=>x.date>=taipeiToday()&&x.status!=='cancelled');
+  const upcoming=currentCourses.find((x:any)=>Date.parse(x.date+'T'+(x.endTime||'23:59')+':00+08:00')>=Date.now()&&x.status!=='cancelled');
   const activeCourse=currentCourses.find((x:any)=>x.id===courseId)||upcoming||currentCourses[currentCourses.length-1];
   const points=child?Domain.points(data,child.id,term):0;
   const childAttendance=child?data.Attendance.filter((x:any)=>x.studentId===child.id&&x.termId===term):[];

@@ -15,7 +15,7 @@ function doGet(e) {
   return page.evaluate().setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 function rpc(request) {
-  var lock,orphan=null;
+  var lock,orphan=null,outcomeUncertain=true;
   try {
     if(!request||typeof request.action!=='string')throw new Error('請求格式不正確');
     var allowed=['bootstrap','systemInfo','getPhoto','exportData','uploadPhoto','previewStudentImport','importStudents','saveStudent','attendance','learning','lockSession','addPoints','reversePoints','saveAnnouncement','saveEvent','saveAlbum','hidePhoto','saveUser','saveTerm','saveSettings'];
@@ -66,6 +66,7 @@ function rpc(request) {
       if(previous.actorId!==user.id||previous.action!==request.action||previous.requestHash!==hash)throw new Error('操作編號已被其他請求使用');
       return {ok:true,data:{snapshot:Domain.project(db,user.id),result:previous.result,replayed:true}};
     }
+    outcomeUncertain=false; // Lock acquired and this operation ID is not committed.
     var action=request.action,originalAction=action;
     if(action==='uploadPhoto') {
       var album=db.Albums.find(function(x){return x.id===payload.albumId;});
@@ -83,13 +84,14 @@ function rpc(request) {
     var change=Domain.execute(db,user.id,action,payload,{id:operationId,hash:hash,now:new Date().toISOString()});
     // Preserve the externally requested action for idempotent upload retries.
     change.db.Audit[change.db.Audit.length-1].action=originalAction;
+    outcomeUncertain=true; // A Sheets timeout may still have committed the whole batch.
     commitData_(loaded,db,change.db);orphan=null;
     return {ok:true,data:{snapshot:Domain.project(change.db,user.id),result:change.result}};
   } catch(error) {
     // A Drive upload and Sheets batch are not one transaction. An ambiguous Sheets
     // timeout can have committed the photo index: keep the file for reconciliation.
     // Unindexed files may be reviewed in Drive by the owner; never trash blindly.
-    return {ok:false,error:publicError_(error),uncertain:!(/^[\u3400-\u9fff]/.test(String(error&&error.message||'')))};
+    return {ok:false,error:publicError_(error),uncertain:outcomeUncertain};
   } finally {if(lock)lock.releaseLock();}
 }
 function publicError_(error) {

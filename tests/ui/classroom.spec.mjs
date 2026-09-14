@@ -1,4 +1,8 @@
 import {test,expect} from '@playwright/test';
+test.beforeEach(async({page})=>{
+  // Keep all browser fixtures fictional even when production config uses Google.
+  await page.route('**/config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.CLASSROOM_CONFIG={mode:"demo"};'}));
+});
 async function start(page,role='parent_a'){
   await page.goto('/');await expect(page.getByRole('heading',{level:1})).toContainText('平安');
   if(role!=='parent_a')await page.getByLabel('示範身分').selectOption(role);
@@ -75,4 +79,15 @@ test('phone views fit and navigation stays usable',async({page})=>{
   await page.getByRole('button',{name:'進入教員後台'}).click();
   await expect(page.getByRole('heading',{level:1})).toContainText('教員工作台');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+});
+
+test('unconfigured Google mode fails closed and never reveals demo records',async({page})=>{
+  await page.unroute('**/config.js');
+  await page.route('**/config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.CLASSROOM_CONFIG={mode:"google",firebase:{},appsScriptUrl:""};'}));
+  await page.goto('/');
+  await page.getByRole('button',{name:'使用 Google 帳號登入'}).click();
+  await expect(page.getByRole('alert')).toContainText('Google 登入尚未完成設定');
+  await expect(page.locator('.demo-bar')).toHaveCount(0);
+  await expect(page.locator('main')).toHaveCount(0);
+  await expect(page.getByLabel('選擇孩子')).toHaveCount(0);
 });

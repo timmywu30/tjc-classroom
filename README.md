@@ -10,6 +10,14 @@
 - [資料與權限設計](docs/SECURITY.md)
 - [建置與測試紀錄](https://github.com/timmywu30/tjc-classroom/actions)
 
+## 畫面預覽
+
+以下為實際瀏覽器測試截圖，內容均為虛構。
+
+![桌面首頁](docs/screenshots/home-desktop.jpg)
+
+[查看手機首頁](docs/screenshots/home-mobile.jpg)
+
 ## 已實作功能
 
 | 使用者 | 功能 |
