@@ -10,7 +10,7 @@ test('families switch their own children; private admin routes stay closed',asyn
   const child=page.getByLabel('選擇孩子');
   await expect(child.locator('option')).toHaveText(['小恩（示範）','小樂（示範）']);
   await child.selectOption('s2');await expect(page.locator('.stat-card').first()).toContainText('36');
-  await page.screenshot({path:'test-results/home-desktop.png',fullPage:true});
+  await page.screenshot({path:'test-results/home-desktop.jpg',type:'jpeg',quality:70,fullPage:true});
   await page.getByLabel('示範身分').selectOption('parent_b');
   await expect(page.getByLabel('選擇孩子').locator('option')).toHaveText(['小禾（示範）']);
   await visit(page,'admin/students');await expect(page).toHaveURL(/#\/home$/);
@@ -59,12 +59,12 @@ test('photo upload, review, publication and family lightbox work',async({page})=
   await page.getByLabel('示範身分').selectOption('parent_a');await visit(page,'albums');
   await page.getByRole('button',{name:'課堂的美好片刻',exact:true}).click();
   await page.getByRole('button',{name:'放大 sample.jpg',exact:true}).click();
-  await expect(page.getByRole('dialog',{name:'放大照片'}).getByRole('img')).toBeVisible();
+  await expect(page.getByRole('dialog',{name:'放大照片'}).getByRole('img',{name:'sample.jpg',exact:true})).toBeVisible();
   await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 test('phone views fit and navigation stays usable',async({page})=>{
   await page.setViewportSize({width:390,height:844});await start(page);
-  await page.screenshot({path:'test-results/home-mobile.png',fullPage:true});
+  await page.screenshot({path:'test-results/home-mobile.jpg',type:'jpeg',quality:70,fullPage:true});
   for(const route of ['schedule','growth','events','albums']){
     await visit(page,route);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
   }
@@ -73,6 +73,6 @@ test('phone views fit and navigation stays usable',async({page})=>{
   await page.getByLabel('示範身分').selectOption('teacher');
   await page.getByRole('button',{name:'開啟選單'}).click();
   await page.getByRole('button',{name:'進入教員後台'}).click();
-  await expect(page.getByRole('heading',{level:1})).toContainText('管理');
+  await expect(page.getByRole('heading',{level:1})).toContainText('教員工作台');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
 });

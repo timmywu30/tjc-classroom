@@ -19,10 +19,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
-      - name: Capture initial dependency lock
-        run: node -e "console.log('CLASSROOM_LOCK_BEGIN'+JSON.stringify(require('fs').readFileSync('package-lock.json','utf8'))+'CLASSROOM_LOCK_END')"
+        run: npm ci
       - name: Domain and backend tests
         run: npm test
       - name: Typecheck and production build
@@ -31,6 +28,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser flows and phone layout
         run: npm run test:ui
+      - name: Capture review screenshots
+        run: |
+          node -e "for(const view of ['desktop','mobile']){console.log('CLASSROOM_IMAGE_'+view+'_BEGIN'+require('fs').readFileSync('test-results/home-'+view+'.jpg').toString('base64')+'CLASSROOM_IMAGE_END')}"
       - name: Upload browser report
         if: always()
         uses: actions/upload-artifact@v4

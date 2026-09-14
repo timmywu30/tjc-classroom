@@ -1,0 +1,2 @@
+id,name,grade,classId,active,photoConsent
+student_demo_01,示範學員,一年級,children,TRUE,FALSE
