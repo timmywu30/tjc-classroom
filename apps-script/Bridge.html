@@ -1,0 +1,22 @@
+<!doctype html><html><head><base target="_top"><meta charset="UTF-8"></head><body>
+<script>
+(function(){
+  'use strict';
+  var origins = <?!= originsJson ?>;
+  var nonce = <?!= nonceJson ?>;
+  var target = null;
+  function result(event,response) {
+    event.source.postMessage({type:'tjc:result',nonce:nonce,id:event.data.id,response:response},event.origin);
+  }
+  window.addEventListener('message',function(event){
+    if(event.source!==window.top || origins.indexOf(event.origin)<0 || event.data?.type!=='tjc:request' || event.data.nonce!==nonce)return;
+    if(typeof event.data.id!=='string'||event.data.id.length>100)return;
+    target=event.origin;
+    google.script.run
+      .withSuccessHandler(function(response){result(event,response);})
+      .withFailureHandler(function(){result(event,{ok:false,error:'Google 端暫時無法回應，請使用「重試上次儲存」。',uncertain:true});})
+      .rpc(event.data.request);
+  });
+  origins.forEach(function(origin){window.top.postMessage({type:'tjc:ready',nonce:nonce},origin);});
+})();
+</script></body></html>
