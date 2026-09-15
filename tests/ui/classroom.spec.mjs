@@ -91,3 +91,26 @@ test('unconfigured Google mode fails closed and never reveals demo records',asyn
   await expect(page.locator('main')).toHaveCount(0);
   await expect(page.getByLabel('選擇孩子')).toHaveCount(0);
 });
+
+test('weekly schedule shows periods, combined classes and duty; season notes respect role and term',async({page})=>{
+  await start(page);await visit(page,'schedule');
+  await expect(page.locator('.season-card')).toContainText('學習感恩，練習關心身邊的人。');
+  await expect(page.locator('.teacher-notes')).toHaveCount(0);
+  const courses=page.locator('.course-row');await expect(courses).toHaveCount(6);
+  await expect(courses.first().locator('.course-periods li')).toHaveCount(3);
+  await expect(courses.first()).toContainText('詩頌／司琴：林教員／陳司琴（示範）');
+  await expect(courses.first()).toContainText('值星：周教員（示範）');
+  await expect(courses.last().locator('.course-periods li')).toHaveCount(2);
+  await expect(courses.last()).toContainText('崇拜／共習');
+  await page.getByLabel('搜尋課程').fill('製作感恩小卡');await expect(courses).toHaveCount(5);
+  await page.getByLabel('搜尋課程').fill('查無此課程');await expect(page.getByText('沒有符合的課程')).toBeVisible();
+  await page.getByLabel('搜尋課程').fill('');
+  await page.screenshot({path:'test-results/schedule-desktop.jpg',type:'jpeg',quality:75,fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:'test-results/schedule-mobile.jpg',type:'jpeg',quality:75,fullPage:true});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+  await visit(page,'events');await expect(page.locator('.season-activities')).toContainText('親子共學日（示範）');
+  await page.getByLabel('示範身分').selectOption('teacher');await visit(page,'schedule');
+  await page.getByText('教員工作提醒',{exact:true}).click();await expect(page.locator('.teacher-notes')).toContainText('教員請事先確認教材與分工。');
+  await page.getByLabel('選擇學期').selectOption('term_114_2');await expect(page.locator('.season-card')).toHaveCount(0);
+});

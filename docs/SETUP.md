@@ -2,7 +2,7 @@
 
 這份教學把目前可操作的示範網站切換成正式班級系統。需要儲存庫管理權限，以及用來管理教會資料的 Google 帳號。
 
-**GitHub 與 Google 是兩次獨立部署。GitHub 測試成功不代表 Google 後端已建立。** 課表原始連結尚未指定，因此先提供標準範本；不會猜測或改動既有課表。
+**GitHub 與 Google 是兩次獨立部署。GitHub 測試成功不代表 Google 後端已建立。** 已支援中文三時段課表與原有 Courses 標準格式；程式只讀取課表，不會改動來源的內容、排版或分享設定。
 
 ## 1. 啟用 GitHub Pages
 
@@ -36,6 +36,7 @@ Firebase 的 Web 設定用來識別專案，可以放在網站；服務帳戶 JS
 | --- | --- |
 | apps-script/Code.gs | Code.gs |
 | apps-script/Domain.gs | Domain.gs |
+| apps-script/Schedule.gs | Schedule.gs |
 | apps-script/Bridge.html | Bridge.html，新增類型選 HTML |
 | apps-script/appsscript.json | appsscript.json |
 
@@ -84,7 +85,7 @@ ROOT_FOLDER_ID、PHOTO_FOLDER_ID、BACKUP_FOLDER_ID、DATA_SPREADSHEET_ID、SCHE
 
 若 Google Workspace 管理政策不允許此部署選項，需由組織管理員調整政策或另外評估 API 主機。單純改前端權限不能解決。
 
-日後修改 Code.gs、Domain.gs 或 Bridge.html 時，到「管理部署作業」編輯現有部署並選擇新版本。保留既有 /exec 網址即可。
+日後修改 Code.gs、Domain.gs、Schedule.gs 或 Bridge.html 時，到「管理部署作業」編輯現有部署並選擇新版本。保留既有 /exec 網址即可。
 
 ## 6. 切換網站設定
 
@@ -109,21 +110,62 @@ window.CLASSROOM_CONFIG = {
 
 ## 7. 維護 Google 課表
 
-使用初始化產生的課表，或另建符合格式的試算表，再將 SCHEDULE_SPREADSHEET_ID 指向它。Apps Script 擁有者需有讀取權限。
+### A. 使用原本的中文三時段課表（建議）
 
-分頁名稱必須為 Courses，第一列依序為：
+來源須為原生 Google 試算表，Apps Script 專案擁有者需有讀取權限。無須發布到網路，也不必讓家長取得試算表權限。
+
+先完成第 4 節初始化，再到「指令碼屬性」設定：
+
+| 名稱 | 值／用途 |
+| --- | --- |
+| SCHEDULE_SPREADSHEET_ID | 原始 Google 課表的試算表 ID，取代初始化產生的空課表 ID |
+| SCHEDULE_SHEET_NAME | 課表 |
+| SCHEDULE_TERM_ID | term_115_1；必須對應班級資料 Terms 的 id |
+| SCHEDULE_CLASS_ID | children |
+
+這些來源設定只放在 Apps Script，不放進公開 config.js。若原始課表使用其他分頁名稱，在 SCHEDULE_SHEET_NAME 填入其完整名稱。
+
+支援的表頭與用途：
+
+| 原始欄位 | 網站顯示 |
+| --- | --- |
+| 日期 | 每次聚會日期、星期與點名課程 |
+| 詩頌課 + 時間、詩頌/司琴 | 詩頌內容、詩頌教員及司琴 |
+| 崇拜課 + 時間、崇拜課教員 | 崇拜主題、教員 |
+| 共習課 + 時間、共習課教員 | 共習活動、教員 |
+| 值星 | 當次值星 |
+| 備註 | 當次準備事項或提醒 |
+| 表頭上方標題 | 本季課表名稱 |
+| 本季目標： | 家長與教員課表頁的本季目標 |
+| 本季活動： | 近期活動頁，保留原文日期與時間 |
+| 表底全寬合併的其他提醒 | 僅教員可見的工作提醒 |
+
+時間直接讀取表頭，例如「詩頌課\n10:00~10:20」。日期可維持試算表日期格式，或填完整 YYYY-MM-DD。只有月日的文字無法確定年份，會顯示錯誤；系統不從民國學年度標題猜測日期。
+
+支援同一列橫向合併：「詩頌＋崇拜」或「崇拜＋共習」會顯示為一個連續時段，使用合併範圍後的教員欄。不要將不同日期的課程直向合併。金句、經文與物品若未在來源提供，網站不會自動補寫。
+
+**一列日期代表一次聚會，三個教學時段共用一筆點名與積分。** 課程 ID 依來源試算表、分頁及完整日期產生，因此插入空白列、修改主題或教員不會改變既有點名。已有點名後，請勿更改聚會日期、複製成另一個來源分頁或更換來源 ID，否則會被視為另一堂課。若預先需要同日多次聚會或未來調整日期，可在最右側新增「課程ID」欄並填固定且唯一的代碼；請在首次點名前完成，已有紀錄時勿直接補改 ID。
+
+SCHEDULE_TERM_ID 明確綁定來源所屬學期，變更後台目前學期不會把舊課表移到新學期。換季時先建立 Terms 學期，再切換來源及其 SCHEDULE_TERM_ID；需要同時保留多學期課表供家長查閱時，可使用下方 Courses 格式集中保存歷季資料。程式不會自動將舊來源匯入或寫回。
+
+完成設定後，在 Apps Script 編輯器執行 **checkSchedule_**。記錄會列出聚會筆數與起訖日期，不會印出學員資料。成功後依第 5 節部署新版本，再重新整理網站，核對三時段、合併安排、值星與本季活動。
+
+日常只需編輯原課表儲存格；網站重新整理會重新讀取。課表上的活動是文字公告，若需要報名連結或活動封面，可另外從後台建立活動。
+
+### B. 原有 Courses 標準格式（仍可使用）
+
+將 SCHEDULE_SHEET_NAME 設為 Courses。第一列依序為：
 
 ~~~text
 id,termId,classId,date,startTime,endTime,title,scripture,verse,song,teacher,materials,notes,status,resourceUrl
 ~~~
 
-[下載課表 CSV 範本](../templates/courses.csv)，可在 Google Sheets 使用「檔案 → 匯入」。範本是一筆虛構課程，請換成正式內容。
+[下載課表 CSV 範本](../templates/courses.csv)。範本是一筆虛構課程，請換成正式內容。
 
 | 欄位 | 說明 |
 | --- | --- |
-| id | 固定且不重複，例如 1151-01；已有點名後不可改 |
-| termId | 對應後台學期代碼，初始 term_115_1 |
-| classId | 初始 children |
+| id | 固定且不重複；已有點名後不可改 |
+| termId / classId | 對應學期及班級代碼；初始 term_115_1 / children |
 | date | YYYY-MM-DD，亦支援 Sheets 日期儲存格 |
 | startTime / endTime | HH:mm，亦支援 Sheets 時間儲存格 |
 | title / scripture / verse | 主題、經文範圍、完整金句 |
@@ -131,11 +173,9 @@ id,termId,classId,date,startTime,endTime,title,scripture,verse,song,teacher,mate
 | status | normal 或 cancelled |
 | resourceUrl | 選填 HTTPS 教材連結 |
 
-第一列英文欄位是資料格式，第二列起填寫課程；可調整欄寬與顏色，勿改欄位順序或合併儲存格。空白列可保留。使用者按網站重新整理即可讀取新課表。
+英文表頭順序固定，第二列起填寫。可保留空白列、調整欄寬與顏色；標準表不要合併儲存格。相較中文格式，本格式的學期與班級直接取自各列，可放入多學期課程。
 
-如原課表使用中文表頭、分週排版或合併儲存格，保留原表，另建 Courses 分頁映射至本格式。提供實際欄位後可再製作對應轉換器；第一版不會猜測欄位意義。
-
-課表可只分享編輯權給教員，不必分享整本班級資料表。家長不需取得 Google Sheet 權限。
+備份還原時，會自動在末尾加入 periods（時段 JSON 陣列）與 dutyTeacher（值星），並建立 ScheduleInfo 分頁保存本季資訊；這些擴充欄位與原本的 15 欄皆可被讀取。一般教員無須手動編輯 JSON，平日繼續用中文課表即可。
 
 ## 8. 連接既有 Google 學員名單
 
@@ -157,7 +197,7 @@ id,termId,classId,date,startTime,endTime,title,scripture,verse,song,teacher,mate
 1. 暫停教員操作，先手動執行 dailyBackup_ 留下目前狀態。
 2. 找到要還原的 JSON 檔案，在指令碼屬性填入 RESTORE_FILE_ID。
 3. 從 Apps Script 執行 restoreBackup_。
-4. 程式會建立新的班級資料與課表，驗證基本備份結構後切換 ID，保留原資料表。
+4. 程式會建立新的班級資料與 Courses 格式課表，驗證基本備份結構後切換 ID 與分頁設定，保留原資料表。課程 ID、三時段、值星、本季目標、活動及教員提醒會一併保留；原始課表的顏色與合併排版不包含在 JSON 備份中。
 5. 完成後重新整理網站，核對名單、積分、課表與照片。RESTORE_FILE_ID 會自動移除。
 
 移交帳號時，Google 觸發器綁定建立者；請新管理者確認自己的授權與觸發器，再移除舊管理者的觸發器。保留至少一個可登入的班負責。
@@ -196,5 +236,8 @@ id,termId,classId,date,startTime,endTime,title,scripture,verse,song,teacher,mate
 - [HTML Service 通訊與私有函式](https://developers.google.com/apps-script/guides/html/communication)
 - [Firebase Google 登入](https://firebase.google.com/docs/auth/web/google-signin)
 - [Firebase Auth REST API](https://firebase.google.com/docs/reference/rest/auth)
+- [Sheets 分頁與合併範圍](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/sheets)
+- [Apps Script 進階 Sheets 服務](https://developers.google.com/apps-script/advanced/sheets)
 - [Sheets 批次更新](https://developers.google.com/workspace/sheets/api/guides/batchupdate)
 - [Apps Script 配額](https://developers.google.com/apps-script/guides/services/quotas)
+

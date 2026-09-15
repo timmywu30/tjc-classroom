@@ -155,11 +155,40 @@ function readBook_(bookId,definitions) {
   });
   return {id:bookId,data:data,info:info};
 }
+function readSchedule_(props) {
+  var bookId=props.SCHEDULE_SPREADSHEET_ID;
+  if(!bookId)throw new Error('尚未設定 SCHEDULE_SPREADSHEET_ID');
+  var meta=Sheets.Spreadsheets.get(bookId,{fields:'sheets(properties,merges)'});
+  var candidates=(meta.sheets||[]).filter(function(sheet){return props.SCHEDULE_SHEET_NAME?
+    sheet.properties.title===props.SCHEDULE_SHEET_NAME:['Courses','課表'].indexOf(sheet.properties.title)>=0;});
+  if(candidates.length!==1)throw new Error('請設定 SCHEDULE_SHEET_NAME，指定唯一的 Courses 或中文課表分頁');
+  var sheet=candidates[0],grid=sheet.properties.gridProperties;
+  if(!grid)throw new Error('指定的課表分頁不是資料網格');
+  var range="'"+sheet.properties.title.replace(/'/g,"''")+"'!A1:"+column_(grid.columnCount)+grid.rowCount;
+  var values=Sheets.Spreadsheets.Values.get(bookId,range,{valueRenderOption:'UNFORMATTED_VALUE',dateTimeRenderOption:'SERIAL_NUMBER'}).values||[];
+  var schedule=Schedule.parse(values,sheet.merges||[],{
+    termId:props.SCHEDULE_TERM_ID,classId:props.SCHEDULE_CLASS_ID,
+    namespace:hash_(bookId+':'+sheet.properties.sheetId).slice(0,20)
+  },Domain.courseFields);
+  // Restored schedules retain period details and the original season information.
+  if(values[0]?.[0]==='id'&&meta.sheets.some(function(s){return s.properties.title==='ScheduleInfo';})) {
+    schedule.ScheduleInfo=readBook_(bookId,{ScheduleInfo:Schedule.infoFields}).data.ScheduleInfo;
+  }
+  return schedule;
+}
 function loadData_(props) {
-  var loaded=readBook_(props.DATA_SPREADSHEET_ID,Domain.tables);
-  var schedule=readBook_(props.SCHEDULE_SPREADSHEET_ID,{Courses:Domain.courseFields});
-  loaded.db=loaded.data;loaded.db.Courses=schedule.data.Courses;
+  var loaded=readBook_(props.DATA_SPREADSHEET_ID,Domain.tables),schedule=readSchedule_(props);
+  schedule.Courses.concat(schedule.ScheduleInfo).forEach(function(row){
+    if(!loaded.data.Terms.some(function(term){return term.id===row.termId;}))throw new Error('課表的學期代碼不存在，請核對 SCHEDULE_TERM_ID 或 termId');
+  });
+  loaded.db=loaded.data;loaded.db.Courses=schedule.Courses;loaded.db.ScheduleInfo=schedule.ScheduleInfo;
   return loaded;
+}
+function checkSchedule_() {
+  var props=PropertiesService.getScriptProperties().getProperties(),db=loadData_(props).db;
+  var dates=db.Courses.map(function(c){return c.date;}).sort();
+  console.log('課表讀取成功：'+dates.length+' 次聚會；'+(dates[0]||'尚無日期')+' ～ '+(dates[dates.length-1]||'尚無日期'));
+  console.log('每次聚會只建立一筆點名課程。請接著在網站核對各時段與教員。');
 }
 function column_(n){var s='';while(n>0){n--;s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26);}return s;}
 function cell_(value) {
@@ -254,13 +283,14 @@ function restoreBackup_() {
     var root=DriveApp.getFolderById(props.getProperty('ROOT_FOLDER_ID'));
     var data=SpreadsheetApp.create('幼年班｜還原資料 '+new Date().toISOString()),schedule=SpreadsheetApp.create('幼年班｜還原課表 '+new Date().toISOString());
     DriveApp.getFileById(data.getId()).moveTo(root);DriveApp.getFileById(schedule.getId()).moveTo(root);
-    initBook_(data,Domain.tables);initBook_(schedule,{Courses:Domain.courseFields});
-    Object.keys(Domain.tables).concat(['Courses']).forEach(function(name){
-      var book=name==='Courses'?schedule:data,fields=name==='Courses'?Domain.courseFields:Domain.tables[name],rows=backup.data[name];
+    var scheduleDefinitions={Courses:Domain.courseFields.concat(Schedule.extensions),ScheduleInfo:Schedule.infoFields};
+    initBook_(data,Domain.tables);initBook_(schedule,scheduleDefinitions);
+    Object.keys(Domain.tables).concat(Object.keys(scheduleDefinitions)).forEach(function(name){
+      var book=scheduleDefinitions[name]?schedule:data,fields=scheduleDefinitions[name]||Domain.tables[name],rows=backup.data[name]||[];
       if(rows.length){var sheet=book.getSheetByName(name);if(sheet.getMaxRows()<rows.length+1)sheet.insertRowsAfter(sheet.getMaxRows(),rows.length+1-sheet.getMaxRows());
         Sheets.Spreadsheets.batchUpdate({requests:[{updateCells:{start:{sheetId:sheet.getSheetId(),rowIndex:1,columnIndex:0},rows:rows.map(function(row){return {values:fields.map(function(key){return cell_(row[key]);})};}),fields:'userEnteredValue'}}]},book.getId());}
     });
-    props.setProperties({DATA_SPREADSHEET_ID:data.getId(),SCHEDULE_SPREADSHEET_ID:schedule.getId()});props.deleteProperty('RESTORE_FILE_ID');
+    props.setProperties({DATA_SPREADSHEET_ID:data.getId(),SCHEDULE_SPREADSHEET_ID:schedule.getId(),SCHEDULE_SHEET_NAME:'Courses'});props.deleteProperty('RESTORE_FILE_ID');
     console.log('已切換到還原後的資料。舊資料與課表仍保留在 Drive。');
   } finally {lock.releaseLock();}
 }

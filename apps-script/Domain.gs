@@ -45,6 +45,10 @@ var Domain = (() => {
       actor:{id:a.id,name:a.name,role:a.role,email:a.email,classIds:classes(db,a)},
       Settings:clone(db.Settings),Terms:clone(db.Terms),Students:clone(students),
       Courses:clone(courses),Sessions:clone(db.Sessions.filter(x=>courseIds.has(x.courseId))),
+      ScheduleInfo:(db.ScheduleInfo||[]).filter(x=>canClass(db,a,x.classId)).map(x=>({
+        id:x.id,termId:x.termId,classId:x.classId,title:x.title,goal:x.goal,activities:x.activities,
+        ...(isStaff?{teacherNotes:x.teacherNotes}:{})
+      })),
       Attendance:clone(db.Attendance.filter(x=>ids.has(x.studentId)&&canClass(db,a,x.classId))),
       Learning:clone(db.Learning.filter(x=>ids.has(x.studentId)&&canClass(db,a,x.classId))),
       Points:clone(db.Points.filter(x=>ids.has(x.studentId)&&canClass(db,a,x.classId))),

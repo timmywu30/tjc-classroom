@@ -1,3 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-const source=readFileSync('src/domain.js','utf8').replace('export const Domain','var Domain');
-writeFileSync('apps-script/Domain.gs', source);
+for(const name of ['Domain','Schedule']) {
+  const source=readFileSync('src/'+name.toLowerCase()+'.js','utf8').replace('export const '+name,'var '+name);
+  writeFileSync('apps-script/'+name+'.gs',source);
+}

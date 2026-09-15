@@ -32,7 +32,7 @@ Drive 檔案建立與 Sheets 記錄不在同一交易。照片寫入遇不明網
 
 ## 資料格式與維護
 
-主資料表包含 Settings、Terms、Students、Users、Guardians、Sessions、Attendance、Points、Learning、Announcements、Events、Albums、Photos、Audit，完整欄位定義位於 src/domain.js。Courses 放在另一份課表試算表。
+主資料表包含 Settings、Terms、Students、Users、Guardians、Sessions、Attendance、Points、Learning、Announcements、Events、Albums、Photos、Audit，完整欄位定義位於 src/domain.js。課表由另一份試算表的中文「課表」或 Courses 分頁讀取，會轉為共用 Courses 格式。三時段共用一次聚會 ID；本季資訊依班級過濾，教員工作提醒不會傳入家長端回應。
 
 主資料表使用 stringValue 寫文字，避免使用者輸入被當成公式；CSV 匯出也處理公式開頭與雙引號。頁面以 React 文字節點顯示內容，不注入 HTML。外部連結只允許 HTTPS。
 
@@ -45,3 +45,4 @@ Drive 檔案建立與 Sheets 記錄不在同一交易。照片寫入遇不明網
 本版適合小型班級與精選照片。每次取得快照會讀取資料表；Google 配額與延遲可能影響多人同時操作。正式啟用前需用真實 Google 部署及不同家長帳號驗收，也需測試使用者實際手機的登入與 iframe 相容性。程式與模擬測試不能取代部署驗收。
 
 瀏覽器自動測試會攔截 config.js 並載入虛構示範模式，即使網站設定已切換 Google 也不會將正式個資寫入測試報告。另有 Google 設定缺漏時拒絕載入資料的測試。
+

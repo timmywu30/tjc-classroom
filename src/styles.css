@@ -9,3 +9,13 @@
 @media print{.sidebar,.topbar,.demo-bar,.bottom-nav,.button,.footer{display:none!important}.workspace{margin:0}main{padding:0}.course-row,.notice-card{break-inside:avoid}body{background:#fff}}
 
 .pagination{display:flex;gap:16px;align-items:center;justify-content:center;margin:24px 0;flex-wrap:wrap}.pagination span{font-size:.85rem;color:var(--muted)}
+/* Weekly schedule: visible teaching periods, season context, and duty assignments. */
+.course-periods{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;list-style:none;padding:0;margin:18px 0 16px}
+.course-periods li{min-width:0;background:#f6f8f1;border:1px solid #e4e9db;border-radius:11px;padding:14px;overflow-wrap:anywhere}
+.period-heading{display:flex;align-items:baseline;justify-content:space-between;gap:9px;flex-wrap:wrap;margin-bottom:8px;color:#466244}
+.period-heading>span{font-size:.78rem;font-weight:700}.period-heading time{font-size:.71rem;white-space:nowrap;color:#697b61;font-variant-numeric:tabular-nums}
+.course-periods strong{display:block;font-size:.91rem;line-height:1.65;color:#304b32}.course-periods small{display:block;font-size:.74rem;line-height:1.6;color:#637259;margin-top:6px}
+.course-row .date-tile{height:auto;min-height:86px;padding:10px 0;flex-shrink:0}.date-tile small{font-size:.67rem;color:#657457}.duty-teacher{color:#526b44}
+.season-card{background:#edf2e5;border:1px solid #dde5d3;border-radius:16px;padding:25px 28px;margin-bottom:22px;overflow-wrap:anywhere}.season-card h2{font-size:1.12rem;line-height:1.6;display:flex;align-items:center;gap:10px}.season-card p{white-space:pre-line;color:#506349;font-size:.88rem;line-height:1.9;margin:7px 0 0}
+.season-goal{display:flex;gap:13px;margin-top:18px}.season-goal>svg{flex-shrink:0;margin-top:4px;color:#6b8059}.season-goal h3{font-size:.83rem;color:#3d5b37}.season-goal p{margin-top:4px}.teacher-notes{margin-top:18px;padding-top:14px;border-top:1px solid #d8e1ce;font-size:.8rem;color:#587347}.teacher-notes summary{cursor:pointer}.season-activities>p{margin-top:12px}
+@media(max-width:580px){.course-periods{grid-template-columns:1fr;margin-top:13px;gap:8px}.course-periods li{padding:12px}.season-card{padding:19px 20px}.season-card h2{font-size:1.03rem}.season-goal{gap:10px}.course-row .date-tile{min-height:81px}.course-main{min-width:0}.season-card p{font-size:.84rem}}

@@ -3,7 +3,7 @@
 
 **目前預設為可操作的示範模式，所有人物與課程皆為虛構。Google 正式服務需依設定文件完成一次性部署。** 示範修改只保存在使用者目前的瀏覽器，請勿輸入真實個資。
 
-- [網站（Pages 啟用並部署成功後）](https://timmywu30.github.io/tjc-classroom/)
+- [班級網站](https://timmywu30.github.io/tjc-classroom/)
 - [完整系統方案](docs/PLAN.md)
 - [從示範切換正式系統：設定教學](docs/SETUP.md)
 - [教員與家長操作手冊](docs/GUIDE.md)
@@ -27,6 +27,8 @@
 | 班負責 | 教員全部功能、Google 帳號開通與孩子關聯、角色與停用、Google 學員來源表預覽匯入、學期封存、積分規則、雲端資料連結、JSON 備份、操作紀錄 |
 | 系統 | 後端權限過濾、穩定操作編號避免重複寫入、照片壓縮、每日資料備份、GitHub Actions 自動測試與發布 |
 
+課表支援原本的中文三時段排版：詩頌／司琴、崇拜、共習、值星，以及跨時段合併安排。本季目標與活動可直接從課表顯示，表底工作提醒只給教員查看。一列日期仍共用一筆點名與積分。
+
 家長不會看到全班積分排名。相簿依班級發布，教員需確認照片內容與分享同意。
 
 ## 架構
@@ -49,7 +51,7 @@ npm ci
 npm run dev
 ~~~
 
-首次尚無 package-lock.json 時使用 npm install。變更共用資料邏輯後同步 Apps Script：
+變更 src/domain.js 或 src/schedule.js 後，同步 Apps Script 中的共用邏輯：
 
 ~~~sh
 npm run backend:sync
@@ -75,3 +77,4 @@ npm run test:ui
 | docs/ | 方案、設定、操作與資料維護說明 |
 
 本專案為班級管理用途，介面及示範課程不代表教會正式教材或官方公告。
+

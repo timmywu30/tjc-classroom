@@ -21,6 +21,18 @@ export function makeDemo() {
   const titles=['感謝神的看顧','學習彼此相愛','把神的話放在心裡','成為願意幫助人的孩子','一起學習禱告','珍惜身旁的同伴'];
   const scriptures=['詩篇 23:1','約翰福音 13:34','詩篇 119:11','加拉太書 6:2','帖撒羅尼迦前書 5:17','箴言 17:17'];
   db.Courses=titles.map((title,i)=>{const d=new Date(day);d.setUTCDate(d.getUTCDate()+(i-2)*7);return {id:'course'+i,termId:'term_115_1',classId:'children',date:d.toISOString().slice(0,10),startTime:'10:00',endTime:'11:30',title,scripture:scriptures[i],verse:i===2?'我將你的話藏在心裡，免得我得罪你。':'本週金句請依教員指定內容複習。',song:'由當週教員安排',teacher:'林教員、陳教員（示範）',materials:'聖經、筆、筆記本',notes:'示範課程，請以教員發布的正式課表為準。',status:'normal',resourceUrl:''};});
+  // Fictional examples show the same three-period layout without publishing a real roster.
+  db.Courses.forEach(c=>{
+    c.endTime='11:25';c.dutyTeacher='周教員（示範）';
+    c.periods=[
+      {label:'詩頌',title:'一起唱感恩的歌（示範）',startTime:'10:00',endTime:'10:20',teacher:'林教員／陳司琴（示範）',teacherLabel:'詩頌／司琴'},
+      {label:'崇拜',title:c.title,startTime:'10:30',endTime:'11:00',teacher:'林教員（示範）',teacherLabel:'教員'},
+      {label:'共習',title:'製作感恩小卡（示範）',startTime:'11:05',endTime:'11:25',teacher:'陳教員（示範）',teacherLabel:'教員'}
+    ];
+  });
+  db.Courses[5].periods.splice(1,2,{label:'崇拜／共習',title:'學習成果分享（示範）',startTime:'10:30',endTime:'11:25',teacher:'林教員（示範）',teacherLabel:'教員'});
+  db.Courses[5].title='學習成果分享（示範）';
+  db.ScheduleInfo=[{id:'demo-season',termId:'term_115_1',classId:'children',title:'幼年班・本季課表（示範）',goal:'學習感恩，練習關心身邊的人。',activities:'親子共學日（示範）\n時間與內容請見下方活動公告。',teacherNotes:'教員請事先確認教材與分工。（示範提醒）'}];
   for(let i=0;i<4;i++) {
     const s=db.Students[i];
     db.Points.push({id:'seed'+i,termId:'term_115_1',classId:'children',studentId:s.id,amount:20+i*6,reason:'學習參與（示範紀錄）',kind:'manual',sourceId:'',reversesId:'',by:'teacher',at:db.Courses[0].date+'T03:30:00Z'});
@@ -38,3 +50,4 @@ export function makeDemo() {
   db.Albums=[{id:'album1',classId:'children',title:'課堂的美好片刻',date:db.Courses[1].date,description:'可以切換到教員身分，試著加入一張照片。',published:false,reviewed:false,coverId:''}];
   return db;
 }
+
